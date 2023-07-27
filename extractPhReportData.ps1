@@ -2,12 +2,13 @@ function pdf2text {
 	param(
 		[Parameter(Mandatory=$true)][string]$file
 	)
-  # Must lead to local copy of itextsharp.dll
+        # Must lead to local copy of itextsharp.dll
 	Add-Type -Path "C:\Users\jcastle7\Downloads\temp\ph\itextsharp.dll"
 	$pdf = New-Object iTextSharp.text.pdf.pdfreader -ArgumentList $file
 	$text = ""
+        $strategy = New-Object iTextSharp.text.pdf.parser.SimpleTextExtractionStrategy
 	for ($page = 1; $page -le $pdf.NumberOfPages; $page++){
-		$text += [iTextSharp.text.pdf.parser.PdfTextExtractor]::GetTextFromPage($pdf,$page)
+		$text += [iTextSharp.text.pdf.parser.PdfTextExtractor]::GetTextFromPage($pdf,$page,$strategy)
 	}	
 	$pdf.Close()
 	return $text
@@ -21,25 +22,33 @@ function ParseDataFromPDF {
 	# Extract the text from the pdf
 	$pdfText = pdf2text -file $filePath
 	$pdfLines = $pdfText -split "`n"
+ 
+        # Find patient line
+        $patientIndex = $pdfLines.IndexOf("Patient: ")
 
 	# Extract the desired information based on the line
-	$genderPhysicianLine = $pdfLines[6] 
+	$patientName = $pdfLines[$patientIndex + 1].Trim()
+        # Sometimes patient name is two lines
+        if ($pdfLines[$patientIndex + 2] -notmatch '\d') {
+		$patientIndex = $patientIndex + 1
+                $patientName = $patientName + " " + $pdfLines[$patientIndex + 1].Trim()
+        }
+	$medicalRecordNumber = $pdfLines[$patientIndex + 2].Trim()
+
+	$genderPhysicianLine = $pdfLines[$patientIndex + 3] 
 	$gender = if ($genderPhysicianLine -match "Gender: (\w+)") { $Matches[1] } else { "" }
-	$physician = if ($genderPhysicianLine -match "Physician: (.*),") { $Matches[1] } else { "" }
+	$physician = if ($genderPhysicianLine -match "Physician: (.*)") { $Matches[1] } else { "" }
 	
-	$referringLine = $pdfLines[8]
+	$referringLine = $pdfLines[$patientIndex + 4]
 	$referredBy = if ($referringLine -match "Referred by: (.*)") { $Matches[1] } else { "" }
 
-	$dobLine = $pdfLines[10]
+	$dobLine = $pdfLines[$patientIndex + 5]
 	$dob = if ($dobLine -match "DOB: (\d{2}/\d{2}/\d{4})") { $Matches[1] } else { "" }
 
-	$patientName = $pdfLines[11].Trim()
-	$medicalRecordNumber = $pdfLines[12].Trim()
-
-	$medicationLine = $pdfLines[13]
+	$medicationLine = $pdfLines[$patientIndex + 6]
 	$medication = if ($medicationLine -match "Medication: (\w+)") { $Matches[1] } else { "" }
 
-	$dateLine = $pdfLines[14]
+	$dateLine = $pdfLines[$patientIndex + 7]
 	$date = if ($dateLine -match "Date: (\d{2}/\d{2}/\d{4})") { $Matches[1] } else { "" }
 
 	# Create a custom object to hold the data
@@ -52,6 +61,7 @@ function ParseDataFromPDF {
 	$output | Add-Member -Type NoteProperty -Name "MedicalRecordNumber" -Value $medicalRecordNumber
 	$output | Add-Member -Type NoteProperty -Name "Medication" -Value $medication
 	$output | Add-Member -Type NoteProperty -Name "Date" -Value $date
+        $output | Add-Member -Type NoteProperty -Name "FilePath" -Value $filePath
 	
 	return $output
 }
