@@ -28,7 +28,6 @@ function ParseDataFromPDF {
 
 	# Extract the desired information based on the line
 	$patientName = $pdfLines[$patientIndex + 1].Trim()
-        # Sometimes patient name is two lines
         if ($pdfLines[$patientIndex + 2] -notmatch '\d') {
 		$patientIndex = $patientIndex + 1
                 $patientName = $patientName + " " + $pdfLines[$patientIndex + 1].Trim()
