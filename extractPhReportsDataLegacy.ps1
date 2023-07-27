@@ -36,17 +36,18 @@ function ParseDataFromPDF {
 	$genderPhysicianLine = $pdfLines[$patientIndex + 3] 
 	$gender = if ($genderPhysicianLine -match "Gender: (\w+)") { $Matches[1] } else { "" }
 	$physician = if ($genderPhysicianLine -match "Physician: (.*)") { $Matches[1] } else { "" }
-	
-	$referringLine = $pdfLines[$patientIndex + 4]
-	$referredBy = if ($referringLine -match "Referred by: (.*)") { $Matches[1] } else { "" }
 
-	$dobLine = $pdfLines[$patientIndex + 5]
-	$dob = if ($dobLine -match "DOB: (\d{2}/\d{2}/\d{4})") { $Matches[1] } else { "" }
+	$dobLine = $pdfLines[$patientIndex + 4]
+	$dob = if ($dobLine -match "Birth Date: (\d{2}/\d{2}/\d{4})") { $Matches[1] } else { "" }
 
-	$medicationLine = $pdfLines[$patientIndex + 6]
+        $referringIndex = $pdfLines.IndexOf("Physician: ")
+ 
+	$referredBy = $pdfLines[$referringIndex + 1].Trim()
+
+	$medicationLine = $pdfLines[$referringIndex + 2]
 	$medication = if ($medicationLine -match "Medication: (\w+)") { $Matches[1] } else { "" }
 
-	$dateLine = $pdfLines[$patientIndex + 7]
+	$dateLine = $pdfLines[$referringIndex + 3]
 	$date = if ($dateLine -match "Date: (\d{2}/\d{2}/\d{4})") { $Matches[1] } else { "" }
 
 	# Create a custom object to hold the data
