@@ -108,7 +108,7 @@ for ($i = 0; $i -lt $maxRowsG; $i++) {
     $outputRowsG += New-Object PSObject -Property $outputRow
 }
 
-function Sort-PropertiesAlphabetically {
+function Format-PropertiesAlphabetically {
     param (
         [Parameter(ValueFromPipeline=$true)]
         $InputObject
