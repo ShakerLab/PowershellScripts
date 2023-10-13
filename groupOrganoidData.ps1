@@ -8,7 +8,7 @@ $groupedDataG = @{}
 
 foreach ($row in $csvData) {
     # Calculate Length (um) from Length px
-    $row.'Length (um)' = [math]::Round(([double]$row.'Length px' * 1.1941), 2)
+    Add-Member -InputObject $row -NotePropertyName 'Length (um)' -NotePropertyValue ([math]::Round(([double]$row.'Length px' * 1.1941), 2))
 
     # Skip this row if Length (um) is less than 50
     if ([double]$row.'Length (um)' -lt 50) {
@@ -17,9 +17,9 @@ foreach ($row in $csvData) {
 
     # Derive the Group, Day, and Replicate fields from the Image field
     $imageNameParts = $row.Image -split '_'
-    $row.Group = $imageNameParts[0]
-    $row.Day = $imageNameParts[1].substring(1)
-    $row.Replicate = $imageNameParts[2].replace('.jpg', '')
+    Add-Member -InputObject $row -NotePropertyName 'Group' -NotePropertyValue $imageNameParts[0]
+    Add-Member -InputObject $row -NotePropertyName 'Day' -NotePropertyValue $imageNameParts[1].substring(1)
+    Add-Member -InputObject $row -NotePropertyName 'Replicate' -NotePropertyValue $imageNameParts[2].replace('.jpg', '')
 
     # Create the column key as a concatenation of Group, Day, and Replicate
     $columnKeyGDR = "$($row.Group)_$($row.Day)_$($row.Replicate)"
@@ -108,7 +108,23 @@ for ($i = 0; $i -lt $maxRowsG; $i++) {
     $outputRowsG += New-Object PSObject -Property $outputRow
 }
 
+function Sort-PropertiesAlphabetically {
+    param (
+        [Parameter(ValueFromPipeline=$true)]
+        $InputObject
+    )
+    
+    process {
+        $sortedProperties = $InputObject.PSObject.Properties | Sort-Object Name
+        $sortedObj = New-Object PSObject
+        $sortedProperties | ForEach-Object {
+            Add-Member -InputObject $sortedObj -NotePropertyName $_.Name -NotePropertyValue $_.Value
+        }
+        return $sortedObj
+    }
+}
+
 # Output the data to a new CSV file
-$outputRowsGDR | Export-Csv -Path "./groupedDataGDR.csv" -NoTypeInformation
-$outputRowsGD | Export-Csv -Path "./groupedDataGD.csv" -NoTypeInformation
-$outputRowsG | Export-Csv -Path "./groupedDataG.csv" -NoTypeInformation
+$outputRowsGDR | Sort-PropertiesAlphabetically | Export-Csv -Path "./groupedDataGDR.csv" -NoTypeInformation
+$outputRowsGD | Sort-PropertiesAlphabetically | Export-Csv -Path "./groupedDataGD.csv" -NoTypeInformation
+$outputRowsG | Sort-PropertiesAlphabetically | Export-Csv -Path "./groupedDataG.csv" -NoTypeInformation
