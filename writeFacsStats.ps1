@@ -1,6 +1,8 @@
+# Import CSV data
 $csvPath = [IO.Path]::Combine((Get-Location).path, "input.csv")
 $csv = Import-Csv -Path $csvPath
 
+# Initialize and hide Excel
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
 
@@ -46,10 +48,12 @@ function Import-Csv-Data {
         $newSheet.Columns.Item($columnIndex).ColumnWidth = [double]$columnWidths[$key]
     }
 
+    # Heighten first row and wrap text so headers are visible
     $rowRange = $newSheet.Rows.Item(1)
     $rowRange.RowHeight = 100
     $rowRange.WrapText = $true
 
+    # Filter sheet
     $startCell = $newSheet.Cells.Item(1, 1)
     $endCell = $newSheet.Cells.Item($row - 1, $columnHeaders.Count)
     $filterRange = $newSheet.Range($startCell, $endCell)
@@ -68,15 +72,18 @@ function Format-Range-Table {
         $CreateTabs = $False
     )
 
+    # Create thin border around table
     $range = $Worksheet.Range($Range)
     $range.BorderAround(1, 2)
 
+    # Format table title and headers
     $topRange = $range.Rows.Item(1)
     $topRange.Merge($True)
     $topRange.Value2 = $Title
     $topRange.Font.Bold = $True
     $topRange.HorizontalAlignment = -4108
 
+    # Format and set table row names
     $headerRange = $range.Rows.Item(2)
     $headerRange.Font.Bold = $True
     $headerRange.Cells.Item(1, 1) = $Condition
@@ -86,13 +93,15 @@ function Format-Range-Table {
     $headerRange.Cells.Item(1, 5) = "M"
     $headerRange.Cells.Item(1, 6) = "F"
 
-    $global:i = 0
+    $global:i = 0 # Use global context due to function scoping in foreach
     foreach ($key in $Criteria.keys) {
         $currentCriteria = $criteria[$key]
 
+        # Set condition name
         $global:i++
         $range.Cells.Item($global:i + 2, 1) = $key
 
+        # Get only CSV entries matching the passed filter criteria
         $filteredEntries = $csv | Where-Object {
             $match = $true
             foreach ($column in $currentCriteria.Keys) {
@@ -104,11 +113,13 @@ function Format-Range-Table {
             $match
         }
 
+        # Calculate the average age for the filtered entries
         $averageAge = [Math]::Round(($filteredEntries | Measure-Object -Property "Age" -Average).Average, 2)
 
+        # Order the ages of the filtered entries
         $ages = $filteredEntries | ForEach-Object { [int]$_."Age" } | Sort-Object
 
-        # Calculate the median age
+        # Calculate the median age from the ordered ages
         $count = $ages.Count
         $medianAge = 0
         if ($count -gt 0) {
@@ -119,21 +130,25 @@ function Format-Range-Table {
             }
         }
 
+        # Get the count of the filtered entries by sex
         $maleCount = ($filteredEntries | Where-Object { $_.Sex -eq "M" }).Count
         $femaleCount = ($filteredEntries | Where-Object { $_.Sex -eq "F" }).Count
 
+        # Fill the table with calculated values
         $range.Cells.Item($global:i + 2, 2) = $averageAge
         $range.Cells.Item($global:i + 2, 3) = $medianAge
         $range.Cells.Item($global:i + 2, 4) = $count
         $range.Cells.Item($global:i + 2, 5) = $maleCount
         $range.Cells.Item($global:i + 2, 6) = $femaleCount
 
+        # Optionally, create a seperate tab for the filtered data
         if ($createTabs) {
             Import-Csv-Data -Csv $filteredEntries -Workbook $Workbook -Name $key
         }
     }
 }
 
+# Hardcode widths of certain columns in px
 $columnWidths = @{
     "First Name" = 11.5
     "Last Name" = 14
@@ -162,17 +177,19 @@ $columnWidths = @{
     "Dysplasia Status" = 15.5
 }
 
+# Setup new workbook
 $workbook = $excel.Workbooks.Add()
-
 $newFilePath = [IO.Path]::Combine((Get-Location).path, "output.xlsx")
-
 $workbook.SaveAs($newFilePath)
 
+# Create tables sheet
 $worksheet = $workbook.Worksheets.Item(1)
 $worksheet.Name = "Tables"
 
+# Create initial data sheet with all CSV data
 Import-Csv-Data -Csv $csv -Workbook $workbook -Name "All"
 
+# Create tables and broad category sheets
 Format-Range-Table -Range "A1:F10" -Workbook $workbook -Worksheet $worksheet -Title "Samples by Broad Category" -CreateTabs $True -Criteria ([ordered]@{
     "Normal" = @{
         "Broad Category (choice=Normal)" = "Checked"
@@ -200,6 +217,7 @@ Format-Range-Table -Range "A1:F10" -Workbook $workbook -Worksheet $worksheet -Ti
     }
 })
 
+# Subcategorize Inconclusive Samples
 Format-Range-Table -Range "A12:F15" -Workbook $workbook -Worksheet $worksheet -Title "Inconclusive Samples" -Criteria ([ordered]@{
     "Salmon Colored" = @{
         "Broad Category (choice=Inconclusive)" = "Checked"
@@ -223,6 +241,7 @@ Format-Range-Table -Range "H12:M15" -Workbook $workbook -Worksheet $worksheet -T
     }
 })
 
+# Subcategorize EoE Samples
 Format-Range-Table -Range "A17:F20" -Workbook $workbook -Worksheet $worksheet -Title "EoE Samples" -Criteria ([ordered]@{
     "Active" = @{
         "Broad Category (choice=EoE)" = "Checked"
@@ -235,6 +254,7 @@ Format-Range-Table -Range "A17:F20" -Workbook $workbook -Worksheet $worksheet -T
 
 })
 
+# Subcategorize Reflux Esophagitis Samples
 Format-Range-Table -Range "A22:F27" -Workbook $workbook -Worksheet $worksheet -Title "Reflux Esophagitis Samples" -Criteria ([ordered]@{
     "Active" = @{
         "Broad Category (choice=Reflux Esophagitis)" = "Checked"
@@ -292,6 +312,7 @@ Format-Range-Table -Range "O22:T27" -Workbook $workbook -Worksheet $worksheet -T
     }
 })
 
+# Subcategorize Barrett's Esophagus Samples
 Format-Range-Table -Range "A29:F34" -Workbook $workbook -Worksheet $worksheet -Title "Barrett's Esophagus Samples" -Criteria ([ordered]@{
     "Active" = @{
         "Broad Category (choice=Barretts Esophagus)" = "Checked"
@@ -328,9 +349,11 @@ Format-Range-Table -Range "H29:M34" -Workbook $workbook -Worksheet $worksheet -T
 # Autofit columns
 $worksheet.Columns.Item("A:T").EntireColumn.AutoFit() | Out-Null
 
+# Save and close workbook
 $workbook.Save()
 $excel.Quit()
 
+# Ensure removal of orphan Excel processes
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
 [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
 [System.GC]::Collect()
