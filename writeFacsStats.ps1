@@ -1,3 +1,5 @@
+# Note: if script fails, kill orphan Excel processes via: taskkill /F /IM excel.exe
+
 # Import CSV data
 $csvPath = [IO.Path]::Combine((Get-Location).path, "input.csv")
 $csv = Import-Csv -Path $csvPath
