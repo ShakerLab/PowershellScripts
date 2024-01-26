@@ -4,6 +4,7 @@ $csv = Import-Csv -Path $csvPath
 $excel = New-Object -ComObject Excel.Application
 $excel.Visible = $false
 
+# Add subset of CSV data as a new sheet in the workbook with special formatting
 function Import-Csv-Data {
     param (
         $Csv,
@@ -11,12 +12,15 @@ function Import-Csv-Data {
         $Name
     )
 
+    # Find the last sheet for correct ordering on insert
     $worksheetCount = $Workbook.Worksheets.Count
     $lastWorksheet = $Workbook.Worksheets.Item($worksheetCount)
 
+    # Insert the new sheet after the last sheet
     $newSheet = $Workbook.Worksheets.Add([System.Reflection.Missing]::Value, $lastWorksheet)
     $newSheet.Name = $Name
 
+    # Extract and set column headers preserving order
     $columnHeaders = $Csv[0].PSObject.Properties.Name
     $row = 1
     $column = 1
@@ -25,6 +29,7 @@ function Import-Csv-Data {
         $column++
     }
 
+    # Extract and set rows
     $row = 2
     foreach ($entry in $Csv) {
         $column = 1
@@ -35,8 +40,10 @@ function Import-Csv-Data {
         $row++
     }
 
+    # Set hard-coded column widths
     foreach ($key in $columnWidths.Keys) {
-        $newSheet.Columns.Item($key).ColumnWidth = [double]$columnWidths[$key]
+        $columnIndex = [Array]::IndexOf($columnHeaders, $key) + 1
+        $newSheet.Columns.Item($columnIndex).ColumnWidth = [double]$columnWidths[$key]
     }
 
     $rowRange = $newSheet.Rows.Item(1)
@@ -128,31 +135,31 @@ function Format-Range-Table {
 }
 
 $columnWidths = @{
-    "C" = 11.5
-    "D" = 14
-    "E" = 12.5
-    "H" = 33
-    "I" = 33
-    "J" = 33
-    "K" = 33
-    "L" = 33
-    "AM" = 10.5
-    "AN" = 10.5
-    "AO" = 10.5
-    "AP" = 10.5
-    "AQ" = 10.5
-    "AR" = 10.5
-    "AS" = 10.5
-    "AT" = 10.5
-    "AU" = 10.5
-    "AV" = 10.5
-    "AW" = 10.5
-    "AX" = 12.5
-    "AY" = 15.5
-    "BA" = 9.5
-    "BB" = 11.5
-    "BF" = 13.5
-    "BG" = 15.5
+    "First Name" = 11.5
+    "Last Name" = 14
+    "Date of study" = 12.5
+    "Impression" = 33
+    "Endoscopy Impressions" = 33
+    "Surgical Pathology Report Diagnosis" = 33
+    "Manometry Diagnosis" = 33
+    "Bravo pH Monitoring Impressions" = 33
+    "Broad Category (choice=Normal)" = 10.5
+    "Broad Category (choice=Inconclusive)" = 10.5
+    "Broad Category (choice=No Pathology)" = 10.5
+    "Broad Category (choice=GERD)" = 10.5
+    "Broad Category (choice=NERD)" = 10.5
+    "Broad Category (choice=EoE)" = 10.5
+    "Broad Category (choice=Reflux Esophagitis)" = 10.5
+    "Broad Category (choice=Lymphocytic Esophagitis)" = 10.5
+    "Broad Category (choice=Barretts Esophagus)" = 10.5
+    "Broad Category (choice=EAC)" = 10.5
+    "Intestinal Metaplasia" = 10.5
+    "Intestinal Metaplasia Type" = 12.5
+    "Mucosa" = 15.5
+    "EoE Status" = 9.5
+    "Reflux Esophagitis Status" = 11.5
+    "Segment Type" = 13.5
+    "Dysplasia Status" = 15.5
 }
 
 $workbook = $excel.Workbooks.Add()
