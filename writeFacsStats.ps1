@@ -34,6 +34,19 @@ function Import-Csv-Data {
         }
         $row++
     }
+
+    foreach ($key in $columnWidths.Keys) {
+        $newSheet.Columns.Item($key).ColumnWidth = [double]$columnWidths[$key]
+    }
+
+    $rowRange = $newSheet.Rows.Item(1)
+    $rowRange.RowHeight = 100
+    $rowRange.WrapText = $true
+
+    $startCell = $newSheet.Cells.Item(1, 1)
+    $endCell = $newSheet.Cells.Item($row - 1, $columnHeaders.Count)
+    $filterRange = $newSheet.Range($startCell, $endCell)
+    $filterRange.AutoFilter()
 }
 
 function Format-Range-Table {
@@ -112,6 +125,34 @@ function Format-Range-Table {
             Import-Csv-Data -Csv $filteredEntries -Workbook $Workbook -Name $key
         }
     }
+}
+
+$columnWidths = @{
+    "C" = 11.5
+    "D" = 14
+    "E" = 12.5
+    "H" = 33
+    "I" = 33
+    "J" = 33
+    "K" = 33
+    "L" = 33
+    "AM" = 10.5
+    "AN" = 10.5
+    "AO" = 10.5
+    "AP" = 10.5
+    "AQ" = 10.5
+    "AR" = 10.5
+    "AS" = 10.5
+    "AT" = 10.5
+    "AU" = 10.5
+    "AV" = 10.5
+    "AW" = 10.5
+    "AX" = 12.5
+    "AY" = 15.5
+    "BA" = 9.5
+    "BB" = 11.5
+    "BF" = 13.5
+    "BG" = 15.5
 }
 
 $workbook = $excel.Workbooks.Add()
